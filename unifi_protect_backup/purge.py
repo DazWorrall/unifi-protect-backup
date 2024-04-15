@@ -54,12 +54,14 @@ class Purge:
 
     async def start(self):
         """Main loop - runs forever."""
+        self.logger.info("Starting Purger")
         while True:
             try:
                 deleted_a_file = False
 
                 # For every event older than the retention time
                 retention_oldest_time = time.mktime((datetime.now() - self.retention).timetuple())
+                self.logger.debug(f"Searching for events older than {retention_oldest_time}")
                 async with self._db.execute(
                     f"SELECT * FROM events WHERE end < {retention_oldest_time}"
                 ) as event_cursor:
@@ -81,6 +83,8 @@ class Purge:
 
                 if deleted_a_file:
                     await tidy_empty_dirs(self.rclone_destination)
+                else:
+                    self.logger.info("No events to purge")
 
             except Exception as e:
                 logger.error("Unexpected exception occurred during purge:", exc_info=e)
